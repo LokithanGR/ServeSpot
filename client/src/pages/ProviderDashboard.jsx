@@ -11,18 +11,18 @@ export default function ProviderDashboard() {
   const [view, setView] = useState("dashboard");
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // ✅ Booking Requests states (pending)
+ 
   const [pendingBookings, setPendingBookings] = useState([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
   const [bookingErr, setBookingErr] = useState("");
   const [updatingBookingId, setUpdatingBookingId] = useState("");
 
-  // ✅ Work History states (accepted + completed + cancelled)
+  
   const [workHistory, setWorkHistory] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [historyErr, setHistoryErr] = useState("");
 
-  // ✅ Reject modal
+  
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [rejectBookingId, setRejectBookingId] = useState("");
@@ -54,14 +54,14 @@ export default function ProviderDashboard() {
 
   const serviceAreasList = user?.provider?.serviceAreas || [];
 
-  // ✅ Profile updation form (NOW includes availability)
+  
   const [form, setForm] = useState({
     mobile: "",
     photo: "",
     serviceAreasText: "",
     businessLocation: null,
 
-    // ✅ NEW
+   
     workingDays: [],
     fromTime: "",
     toTime: "",
@@ -113,7 +113,7 @@ export default function ProviderDashboard() {
       .map((x) => x.trim())
       .filter(Boolean);
 
-    // ✅ small validation
+    
     if (form.workingDays.length > 0) {
       if (!form.fromTime || !form.toTime) {
         return alert("Please choose availability time (From / To) ⏰");
@@ -133,7 +133,7 @@ export default function ProviderDashboard() {
           serviceAreas,
           businessLocation: form.businessLocation,
 
-          // ✅ NEW: availability payload
+          
           availability: {
             workingDays: form.workingDays,
             fromTime: form.fromTime,
@@ -258,7 +258,7 @@ export default function ProviderDashboard() {
     return { text: String(status || "—").toUpperCase(), style: { color: "#111827" } };
   };
 
-  // ✅ show availability summary
+  
   const availabilitySummary = useMemo(() => {
     const av = user?.provider?.availability;
     if (!av) return "—";
@@ -270,7 +270,7 @@ export default function ProviderDashboard() {
   return (
     <div style={styles.page}>
       <div style={styles.shell}>
-        {/* LEFT */}
+        {}
         <aside style={styles.left}>
           <div style={styles.brand}>ServeSpot</div>
 
@@ -297,9 +297,9 @@ export default function ProviderDashboard() {
           </div>
         </aside>
 
-        {/* RIGHT */}
+        {}
         <main style={styles.right}>
-          {/* DASHBOARD */}
+          {}
           {view === "dashboard" && (
             <div style={styles.rightCard}>
               <h2 style={styles.rightTitle}>Hi {user?.name || "Provider"} 👋</h2>
@@ -335,7 +335,7 @@ export default function ProviderDashboard() {
             </div>
           )}
 
-          {/* PROFILE */}
+          {}
           {view === "profile" && (
             <div style={styles.rightCard}>
               <h2 style={styles.rightTitle}>Profile Updation</h2>
@@ -385,7 +385,7 @@ export default function ProviderDashboard() {
                 </div>
               </div>
 
-              {/* ✅ NEW: Availability editor */}
+              {}
               <div style={styles.field}>
                 <label style={styles.label}>Availability Days</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 6 }}>
@@ -436,7 +436,7 @@ export default function ProviderDashboard() {
             </div>
           )}
 
-          {/* BOOKING REQUESTS */}
+          {}
           {view === "requests" && (
             <div style={styles.rightCard}>
               <h2 style={styles.rightTitle}>Booking Requests 📩</h2>
@@ -538,7 +538,7 @@ export default function ProviderDashboard() {
             </div>
           )}
 
-          {/* WORK HISTORY */}
+          {}
           {view === "history" && (
             <div style={styles.rightCard}>
               <h2 style={styles.rightTitle}>Work History 🧾</h2>

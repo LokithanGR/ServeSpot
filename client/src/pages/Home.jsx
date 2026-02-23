@@ -1,7 +1,27 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar.jsx";
 
 export default function Home() {
+  const nav = useNavigate();
+
+  // ✅ Popup state
+  const [showSignInPopup, setShowSignInPopup] = useState(false);
+
+  const handleFeedbackClick = () => {
+    const token = localStorage.getItem("servespot_token");
+    if (!token) {
+      setShowSignInPopup(true);
+      return;
+    }
+    nav("/feedback");
+  };
+
+  const goToSigninForFeedback = () => {
+    setShowSignInPopup(false);
+    nav("/signin?redirect=/feedback");
+  };
+
   // ✅ small inline SVG icons (no extra files needed)
   const ICONS = {
     electrician:
@@ -62,12 +82,36 @@ export default function Home() {
   };
 
   const cards = [
-    { icon: ICONS.electrician, front: "Electrician, Plumber and Carpenter", back: "Fix wiring ⚡ | Plumbing 🚰 | Carpentry 🔨" },
-    { icon: ICONS.appliance, front: "Ac&Appliance Repair", back: "AC ❄️ | Fridge | Washing Machine Repair" },
-    { icon: ICONS.painting, front: "Painting&Waterproofing", back: "Wall Painting 🎨 | Leak Protection 💧" },
-    { icon: ICONS.womenSpa, front: "Women spa/saloon", back: "Facial 💆‍♀️ | Hair styling | Beauty care" },
-    { icon: ICONS.menSalon, front: "Men saloon", back: "Haircut 💈 | Beard styling | Grooming" },
-    { icon: ICONS.cleaning, front: "Cleaning & Pest control", back: "Deep cleaning 🧹 | Pest removal 🐜" },
+    {
+      icon: ICONS.electrician,
+      front: "Electrician, Plumber and Carpenter",
+      back: "Fix wiring ⚡ | Plumbing 🚰 | Carpentry 🔨",
+    },
+    {
+      icon: ICONS.appliance,
+      front: "Ac&Appliance Repair",
+      back: "AC ❄️ | Fridge | Washing Machine Repair",
+    },
+    {
+      icon: ICONS.painting,
+      front: "Painting&Waterproofing",
+      back: "Wall Painting 🎨 | Leak Protection 💧",
+    },
+    {
+      icon: ICONS.womenSpa,
+      front: "Women spa/saloon",
+      back: "Facial 💆‍♀️ | Hair styling | Beauty care",
+    },
+    {
+      icon: ICONS.menSalon,
+      front: "Men saloon",
+      back: "Haircut 💈 | Beard styling | Grooming",
+    },
+    {
+      icon: ICONS.cleaning,
+      front: "Cleaning & Pest control",
+      back: "Deep cleaning 🧹 | Pest removal 🐜",
+    },
   ];
 
   // ✅ typing subtitle
@@ -132,13 +176,11 @@ export default function Home() {
             {cards.map((c, i) => (
               <div key={i} className="flipWrapper">
                 <div className="flipCard">
-                  {/* ✅ FRONT (icon only here) */}
                   <div className="flipFront">
                     <img className="ss-cardIcon" src={c.icon} alt="" />
                     <h3 style={{ margin: 0 }}>{c.front}</h3>
                   </div>
 
-                  {/* ✅ BACK (no icon) */}
                   <div className="flipBack">
                     <p style={{ margin: 0 }}>{c.back}</p>
                   </div>
@@ -149,21 +191,45 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ✅ FOOTER (FIXED: always show) */}
+      {/* ✅ FOOTER */}
       <footer style={styles.footer} className="ss-footer">
         © Servespot- 2026
       </footer>
 
       {/* ✅ FEEDBACK FLOAT BUTTON */}
-      <button className="ss-feedback" onClick={() => (window.location.href = "/feedback")}>
+      <button className="ss-feedback" onClick={handleFeedbackClick}>
         FEEDBACK
       </button>
 
+      {/* ✅ SIGN-IN POPUP */}
+      {showSignInPopup && (
+        <div
+          className="ss-modal-overlay"
+          onClick={() => setShowSignInPopup(false)}
+        >
+          <div className="ss-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="ss-modal-title">Please sign in to give feedback</div>
+            <div className="ss-modal-actions">
+              <button
+                className="ss-btn ss-btn-ghost"
+                onClick={() => setShowSignInPopup(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className="ss-btn ss-btn-primary"
+                onClick={goToSigninForFeedback}
+              >
+                Sign in
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <style>{`
-        /* ✅ background animations removed */
         .ss-content{ position: relative; z-index: 2; }
 
-        /* ✅ header fix (no strip) */
         .ss-topGlass{
           position: sticky;
           top: 0;
@@ -175,71 +241,66 @@ export default function Home() {
           -webkit-backdrop-filter: none;
         }
 
-        /* ✅ footer fix (visibility) */
         .ss-footer{
           position: relative;
           z-index: 5;
         }
 
         /* ✅ flip cards: ONLY rotate + shadow */
-.flipWrapper{ perspective: 1000px; }
+        .flipWrapper{ perspective: 1000px; }
 
-.flipCard{
-  position: relative;
-  width: 100%;
-  height: 170px;
-  transform-style: preserve-3d;
-  transition: transform 0.6s;
-}
+        .flipCard{
+          position: relative;
+          width: 100%;
+          height: 170px;
+          transform-style: preserve-3d;
+          transition: transform 0.6s;
+        }
 
-.flipWrapper:hover .flipCard{
-  transform: rotateY(180deg);
-}
+        .flipWrapper:hover .flipCard{
+          transform: rotateY(180deg);
+        }
 
-/* ✅ glass card look (both sides) */
-.flipFront,
-.flipBack{
-  position:absolute;
-  inset:0;
-  border-radius:18px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  text-align:center;
-  padding:18px;
-  backface-visibility:hidden;
-  overflow:hidden;
+        .flipFront,
+        .flipBack{
+          position:absolute;
+          inset:0;
+          border-radius:18px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          text-align:center;
+          padding:18px;
+          backface-visibility:hidden;
+          overflow:hidden;
 
-  background: rgba(255,255,255,0.20);
-  border: 1px solid rgba(255,255,255,0.38);
-  box-shadow: 0 16px 36px rgba(0,0,0,0.12);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-}
+          background: rgba(255,255,255,0.20);
+          border: 1px solid rgba(255,255,255,0.38);
+          box-shadow: 0 16px 36px rgba(0,0,0,0.12);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+        }
 
-/* ✅ FRONT layout */
-.flipFront{
-  font-weight: 900;
-  flex-direction: column;
-  gap: 10px;
-}
+        .flipFront{
+          font-weight: 900;
+          flex-direction: column;
+          gap: 10px;
+        }
 
-.ss-cardIcon{
-  width: 46px;
-  height: 46px;
-  opacity: 0.95;
-  filter: drop-shadow(0 10px 18px rgba(79,70,229,0.20));
-  user-select:none;
-  pointer-events:none;
-  position:relative;
-}
+        .ss-cardIcon{
+          width: 46px;
+          height: 46px;
+          opacity: 0.95;
+          filter: drop-shadow(0 10px 18px rgba(79,70,229,0.20));
+          user-select:none;
+          pointer-events:none;
+          position:relative;
+        }
 
-/* ✅ BACK only rotate + same shadow */
-.flipBack{
-  transform: rotateY(180deg);
-  font-weight: 800;
-}
-
+        .flipBack{
+          transform: rotateY(180deg);
+          font-weight: 800;
+        }
 
         /* feedback button */
         .ss-feedback{
@@ -328,6 +389,68 @@ export default function Home() {
           0%, 100%{ transform: scale(1); opacity: 0.85; }
           50%{ transform: scale(1.06); opacity: 1; }
         }
+
+        /* ✅ SIGNIN POPUP STYLES */
+        .ss-modal-overlay{
+          position: fixed;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.45);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 99999;
+          padding: 18px;
+        }
+
+        .ss-modal{
+          width: min(420px, 100%);
+          border-radius: 18px;
+          background: rgba(255,255,255,0.75);
+          border: 1px solid rgba(229,231,235,0.95);
+          box-shadow: 0 24px 70px rgba(0,0,0,0.22);
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          padding: 18px 18px 16px;
+        }
+
+        .ss-modal-title{
+          font-weight: 900;
+          font-size: 16px;
+          color: #0f172a;
+        }
+
+        .ss-modal-sub{
+          margin-top: 6px;
+          font-size: 13px;
+          font-weight: 700;
+          color: rgba(15,23,42,0.70);
+          line-height: 1.35;
+        }
+
+        .ss-modal-actions{
+          margin-top: 14px;
+          display: flex;
+          gap: 10px;
+          justify-content: flex-end;
+        }
+
+        .ss-btn{
+          border: 0;
+          border-radius: 12px;
+          padding: 10px 12px;
+          font-weight: 900;
+          cursor: pointer;
+        }
+
+        .ss-btn-ghost{
+          background: rgba(15,23,42,0.06);
+          color: rgba(15,23,42,0.85);
+        }
+
+        .ss-btn-primary{
+          background: rgba(99,102,241,0.95);
+          color: white;
+        }
       `}</style>
     </div>
   );
@@ -336,7 +459,7 @@ export default function Home() {
 const styles = {
   page: {
     minHeight: "100vh",
-    background: "#f8fafc",        // ✅ important: keep base bg stable
+    background: "#f8fafc",
     color: "#1f2937",
     display: "flex",
     flexDirection: "column",
