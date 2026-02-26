@@ -46,7 +46,6 @@ export default function Navbar({
     return () => clearInterval(interval);
   }, [animateLogo]);
 
-  // ✅ close user dropdown on outside click
   useEffect(() => {
     const onDoc = (e) => {
       if (!userMenuRef.current) return;
@@ -250,10 +249,10 @@ const styles = {
   justifyContent: "space-between",
   padding: "16px 28px",
 
-  background: "transparent",     // ✅ remove bg
-  borderBottom: "0",              // ✅ remove line
-  boxShadow: "none",              // ✅ remove shadow
-  backdropFilter: "none",         // ✅ remove blur layer
+  background: "transparent",     
+  borderBottom: "0",              
+  boxShadow: "none",              
+  backdropFilter: "none",         
   WebkitBackdropFilter: "none",
 },
 

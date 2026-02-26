@@ -4,7 +4,6 @@ import requireAuth from "../middlewares/requireAuth.js";
 
 const router = express.Router();
 
-// ---------------- Haversine distance (km) ----------------
 function distanceKm(lat1, lng1, lat2, lng2) {
   const toRad = (v) => (v * Math.PI) / 180;
   const R = 6371;
@@ -21,9 +20,6 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return 2 * R * Math.asin(Math.sqrt(a));
 }
 
-// ---------------------------------------------------------
-// GET /api/providers/search?category=...&radius=10
-// ---------------------------------------------------------
 router.get("/search", requireAuth, async (req, res) => {
   try {
     const { category } = req.query;
@@ -33,7 +29,6 @@ router.get("/search", requireAuth, async (req, res) => {
       return res.status(400).json({ message: "Category required" });
     }
 
-    // ✅ logged-in user location
     const user = await User.findById(req.userId).select(
       "currentLocation"
     );
@@ -46,7 +41,6 @@ router.get("/search", requireAuth, async (req, res) => {
 
     const { lat: uLat, lng: uLng } = user.currentLocation;
 
-    // ✅ fetch providers
     const providers = await User.find({
       role: "provider",
       "provider.category": category,
@@ -66,7 +60,6 @@ router.get("/search", requireAuth, async (req, res) => {
       `
     );
 
-    // ✅ calculate distance + map response
     const nearby = providers
       .map((p) => {
         const loc = p.provider?.businessLocation;
@@ -92,11 +85,9 @@ router.get("/search", requireAuth, async (req, res) => {
 
           businessLocation: loc,
 
-          // ⭐ rating fields
           ratingAvg: Number(p.provider?.ratingAvg || 0),
           ratingCount: Number(p.provider?.ratingCount || 0),
 
-          // ✅ availability (NEW — needed for booking form)
           availability: {
             workingDays:
               p.provider?.availability?.workingDays || [],

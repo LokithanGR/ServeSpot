@@ -5,7 +5,6 @@ import Navbar from "../components/Navbar.jsx";
 export default function Home() {
   const nav = useNavigate();
 
-  // ✅ Popup state
   const [showSignInPopup, setShowSignInPopup] = useState(false);
 
   const handleFeedbackClick = () => {
@@ -22,7 +21,6 @@ export default function Home() {
     nav("/signin?redirect=/feedback");
   };
 
-  // ✅ small inline SVG icons (no extra files needed)
   const ICONS = {
     electrician:
       "data:image/svg+xml;utf8," +
@@ -114,7 +112,6 @@ export default function Home() {
     },
   ];
 
-  // ✅ typing subtitle
   const fullSubtitle =
     "ServeSpot helps you find trusted professionals near you — from home repairs to cleaning and grooming.";
   const [typedSubtitle, setTypedSubtitle] = useState("");
@@ -140,7 +137,7 @@ export default function Home() {
 
   return (
     <div style={styles.page}>
-      {/* ✅ HEADER (no strip bg) */}
+      {}
       <div className="ss-topGlass">
         <Navbar
           showAdmin
@@ -152,7 +149,7 @@ export default function Home() {
         />
       </div>
 
-      {/* ✅ CONTENT */}
+      {}
       <main style={styles.main} className="ss-content">
         <section style={styles.hero}>
           <h1 style={styles.title} className="ss-heroTitle">
@@ -191,17 +188,17 @@ export default function Home() {
         </section>
       </main>
 
-      {/* ✅ FOOTER */}
+      {}
       <footer style={styles.footer} className="ss-footer">
         © Servespot- 2026
       </footer>
 
-      {/* ✅ FEEDBACK FLOAT BUTTON */}
+      {}
       <button className="ss-feedback" onClick={handleFeedbackClick}>
         FEEDBACK
       </button>
 
-      {/* ✅ SIGN-IN POPUP */}
+      {}
       {showSignInPopup && (
         <div
           className="ss-modal-overlay"

@@ -5,7 +5,6 @@ import LocationPickerModal from "../components/LocationPickerModal.jsx";
 export default function UserDashboard() {
   const nav = useNavigate();
 
-  // ✅ Providers listing states
   const [providersList, setProvidersList] = useState([]);
   const [loadingProviders, setLoadingProviders] = useState(false);
   const [providersError, setProvidersError] = useState("");
@@ -18,37 +17,36 @@ export default function UserDashboard() {
 
   const [pickerOpen, setPickerOpen] = useState(false);
 
-  // ✅ My Bookings states (Accepted + Rejected only)
   const [bookingsHome, setBookingsHome] = useState(true);
   const [myBookings, setMyBookings] = useState([]);
   const [loadingMyBookings, setLoadingMyBookings] = useState(false);
   const [myBookingsErr, setMyBookingsErr] = useState("");
 
-  // ✅ Work completed modal states
   const [completeOpen, setCompleteOpen] = useState(false);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [rating, setRating] = useState(5);
   const [review, setReview] = useState("");
   const [completeLoading, setCompleteLoading] = useState(false);
 
-  // ✅ NEW: Booking date/time modal
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [bookingDate, setBookingDate] = useState("");
   const [bookingTime, setBookingTime] = useState("");
 
-  // ✅ NEW: Cancel booking loading
   const [cancelLoadingId, setCancelLoadingId] = useState("");
 
-  // ✅ Stars helper (ratingAvg -> ⭐)
+  // ✅ Cancel Reason Modal states
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelBookingId, setCancelBookingId] = useState("");
+
   const renderStars = (avg = 0) => {
     const a = Number(avg || 0);
-    const rounded = Math.round(a); // 0..5
+    const rounded = Math.round(a);
     let out = "";
     for (let i = 1; i <= 5; i++) out += i <= rounded ? "⭐" : "☆";
     return out;
   };
 
-  // ✅ Helper: "2026-02-02" -> "Mon"
   const getDayShortFromISO = (iso) => {
     if (!iso) return "";
     const d = new Date(iso + "T00:00:00");
@@ -57,7 +55,6 @@ export default function UserDashboard() {
     return map[d.getDay()];
   };
 
-  // ✅ Helper: "10:30" -> minutes
   const timeToMinutes = (t) => {
     if (!t) return NaN;
     const m = String(t).trim().match(/^(\d{1,2}):(\d{2})$/);
@@ -68,7 +65,6 @@ export default function UserDashboard() {
     return hh * 60 + mm;
   };
 
-  // ✅ NEW: Past schedule check (frontend block)
   const isPastSchedule = (dateStr, timeStr) => {
     if (!dateStr || !timeStr) return false;
     const chosen = new Date(`${dateStr}T${timeStr}:00`);
@@ -76,7 +72,6 @@ export default function UserDashboard() {
     return chosen.getTime() < new Date().getTime();
   };
 
-  // ✅ normalize provider workingDays (accept Mon / Monday / mon / MON)
   const normalizeDayToShort = (day) => {
     const s = String(day || "").trim().toLowerCase();
     if (!s) return "";
@@ -92,7 +87,6 @@ export default function UserDashboard() {
     return "";
   };
 
-  // categories rotate
   const categories = useMemo(
     () => [
       "Women's spa / saloon",
@@ -118,7 +112,6 @@ export default function UserDashboard() {
     }
   }, [nav]);
 
-  // rotate category every 2 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setFade(false);
@@ -137,7 +130,6 @@ export default function UserDashboard() {
     nav("/signin");
   };
 
-  // ✅ short location for dashboard
   const currentLocationLabel = useMemo(() => {
     const label = user?.currentLocation?.label || "";
     if (!label.trim()) return "null";
@@ -217,7 +209,6 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ Fetch providers by category + user location
   const fetchProviders = async (category) => {
     try {
       setLoadingProviders(true);
@@ -237,8 +228,7 @@ export default function UserDashboard() {
       );
 
       const data = await res.json().catch(() => ({}));
-      if (!res.ok)
-        throw new Error(data.message || `Failed (status ${res.status})`);
+      if (!res.ok) throw new Error(data.message || `Failed (status ${res.status})`);
 
       setProvidersList(data.providers || []);
     } catch (err) {
@@ -248,7 +238,6 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ availability validator (frontend)
   const validateAvailability = () => {
     if (!selectedProviderObj?.id) return false;
 
@@ -257,7 +246,6 @@ export default function UserDashboard() {
       return false;
     }
 
-    // ✅ NEW: past date/time block
     if (isPastSchedule(bookingDate, bookingTime)) {
       alert("Please choose the correct date/time ❌");
       return false;
@@ -270,14 +258,10 @@ export default function UserDashboard() {
 
     if (!avail) return true;
 
-    const chosenDayShort = getDayShortFromISO(bookingDate); // Mon
-    const workingDaysRaw = Array.isArray(avail.workingDays)
-      ? avail.workingDays
-      : [];
+    const chosenDayShort = getDayShortFromISO(bookingDate);
+    const workingDaysRaw = Array.isArray(avail.workingDays) ? avail.workingDays : [];
 
-    const workingDaysShort = workingDaysRaw
-      .map(normalizeDayToShort)
-      .filter(Boolean);
+    const workingDaysShort = workingDaysRaw.map(normalizeDayToShort).filter(Boolean);
 
     if (workingDaysShort.length && !workingDaysShort.includes(chosenDayShort)) {
       alert("Provider not available on that day ❌");
@@ -298,7 +282,6 @@ export default function UserDashboard() {
     return true;
   };
 
-  // ✅ Book service
   const bookService = async () => {
     if (!selectedProviderObj?.id) return;
 
@@ -335,7 +318,6 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ Fetch My Bookings
   const fetchMyBookings = async () => {
     try {
       setLoadingMyBookings(true);
@@ -359,7 +341,6 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ Delete rejected booking
   const deleteRejected = async (id) => {
     try {
       const token = localStorage.getItem("servespot_token");
@@ -377,26 +358,20 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ NEW: Cancel accepted booking
-  const cancelBooking = async (bookingId) => {
-    const ok = window.confirm("Cancel this booking? ❌");
-    if (!ok) return;
-
+  // ✅ Cancel booking with reason
+  const cancelBooking = async (bookingId, reasonText) => {
     try {
       setCancelLoadingId(bookingId);
       const token = localStorage.getItem("servespot_token");
 
-      const res = await fetch(
-        `http://localhost:5000/api/bookings/${bookingId}/cancel`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ reason: "Cancelled by user" }),
-        }
-      );
+      const res = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ reason: reasonText }),
+      });
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Cancel failed");
@@ -450,28 +425,19 @@ export default function UserDashboard() {
     }
   };
 
-  // ✅ accepted list exclude cancelled
+  const pendingList = myBookings.filter((b) => b.status === "pending");
   const acceptedList = myBookings.filter((b) => b.status === "accepted");
   const rejectedList = myBookings.filter((b) => b.status === "rejected");
 
   return (
     <div style={styles.page}>
       <div style={styles.shell}>
-        {/* LEFT */}
         <aside style={styles.left}>
           <div style={styles.brand}>ServeSpot</div>
 
           <div style={styles.menu}>
-            <MenuItem
-              label="User Dashboard"
-              active={view === "dashboard"}
-              onClick={() => setView("dashboard")}
-            />
-            <MenuItem
-              label="Profile Updation"
-              active={view === "profile"}
-              onClick={() => setView("profile")}
-            />
+            <MenuItem label="User Dashboard" active={view === "dashboard"} onClick={() => setView("dashboard")} />
+            <MenuItem label="Profile Updation" active={view === "profile"} onClick={() => setView("profile")} />
             <MenuItem
               label="Service Providers"
               active={view === "providers"}
@@ -496,7 +462,6 @@ export default function UserDashboard() {
           </div>
         </aside>
 
-        {/* RIGHT */}
         <main style={styles.right}>
           {/* DASHBOARD */}
           {view === "dashboard" && (
@@ -520,8 +485,8 @@ export default function UserDashboard() {
               </div>
 
               <div style={styles.about}>
-                ServeSpot helps you find trusted service providers near you — quick booking,
-                easy tracking, and smooth service experience ✅
+                ServeSpot helps you find trusted service providers near you — quick booking, easy tracking,
+                and smooth service experience ✅
               </div>
 
               <div style={styles.sectionTitle}>What are you looking for? 🔎</div>
@@ -650,12 +615,7 @@ export default function UserDashboard() {
                         {providersList.map((p) => (
                           <li
                             key={p.id}
-                            style={{
-                              marginBottom: 12,
-                              fontWeight: 900,
-                              cursor: "pointer",
-                              lineHeight: 1.35,
-                            }}
+                            style={{ marginBottom: 12, fontWeight: 900, cursor: "pointer", lineHeight: 1.35 }}
                             onClick={() => setSelectedProviderObj(p)}
                           >
                             {p.name} — {p.distanceKm} km{" "}
@@ -672,9 +632,7 @@ export default function UserDashboard() {
                                 ? p.availability.workingDays.join(", ")
                                 : "—"}
                               {p.availability?.fromTime && p.availability?.toTime ? (
-                                <>
-                                  {" "}• {p.availability.fromTime} - {p.availability.toTime}
-                                </>
+                                <> • {p.availability.fromTime} - {p.availability.toTime}</>
                               ) : null}
                             </div>
                           </li>
@@ -726,7 +684,7 @@ export default function UserDashboard() {
                               ? selectedProviderObj.availability.workingDays.join(", ")
                               : "—"}
                             {selectedProviderObj.availability?.fromTime &&
-                            selectedProviderObj.availability?.toTime ? (
+                              selectedProviderObj.availability?.toTime ? (
                               <>
                                 <br />
                                 {selectedProviderObj.availability.fromTime} -{" "}
@@ -761,7 +719,6 @@ export default function UserDashboard() {
                 )}
               </div>
 
-              {/* ✅ BOOKING MODAL */}
               {bookingModalOpen && (
                 <div style={styles.modalOverlay}>
                   <div style={styles.modalCard}>
@@ -790,11 +747,7 @@ export default function UserDashboard() {
                     </div>
 
                     <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
-                      <button
-                        style={styles.btnLight}
-                        type="button"
-                        onClick={() => setBookingModalOpen(false)}
-                      >
+                      <button style={styles.btnLight} type="button" onClick={() => setBookingModalOpen(false)}>
                         Cancel
                       </button>
 
@@ -815,7 +768,7 @@ export default function UserDashboard() {
             </div>
           )}
 
-          {/* ✅ MY BOOKINGS */}
+          {/* BOOKINGS */}
           {view === "bookings" && (
             <div style={styles.rightCard}>
               <h2 style={styles.rightTitle}>My Bookings 📌</h2>
@@ -832,9 +785,15 @@ export default function UserDashboard() {
 
               {!loadingMyBookings && !myBookingsErr && (
                 <>
-                  {/* HOME */}
                   {bookingsHome === true && (
                     <div style={{ marginTop: 14, display: "grid", gap: 12 }}>
+                      <div style={styles.bigCard} onClick={() => setBookingsHome("pending")}>
+                        <div style={{ fontWeight: 900, fontSize: 16 }}>Pending ⏳</div>
+                        <div style={{ marginTop: 6, fontWeight: 800, color: "#374151" }}>
+                          Waiting for provider response ({pendingList.length})
+                        </div>
+                      </div>
+
                       <div style={styles.bigCard} onClick={() => setBookingsHome("accepted")}>
                         <div style={{ fontWeight: 900, fontSize: 16 }}>Accepted ✅</div>
                         <div style={{ marginTop: 6, fontWeight: 800, color: "#374151" }}>
@@ -851,7 +810,54 @@ export default function UserDashboard() {
                     </div>
                   )}
 
-                  {/* ACCEPTED LIST */}
+                  {/* PENDING */}
+                  {bookingsHome === "pending" && (
+                    <div style={{ marginTop: 14 }}>
+                      <button style={styles.btnLight} type="button" onClick={() => setBookingsHome(true)}>
+                        ⬅ Back
+                      </button>
+
+                      {pendingList.length === 0 ? (
+                        <p style={{ fontWeight: 800, marginTop: 12 }}>No pending jobs 😴</p>
+                      ) : (
+                        <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+                          {pendingList.map((b) => (
+                            <div key={b._id} style={styles.netflixCard}>
+                              <div style={{ fontWeight: 900, fontSize: 16 }}>
+                                {b.providerSnapshot?.name || "Provider"} 👨‍🔧
+                              </div>
+
+                              <div style={styles.muted}>
+                                {b.category} • {b.distanceKm ?? "-"} km • {b.etaHours ?? "-"} hrs
+                              </div>
+
+                              <div style={{ marginTop: 10, fontWeight: 800, color: "#e5e7eb" }}>
+                                <div><b>Date:</b> {b.scheduleDate ? String(b.scheduleDate).slice(0, 10) : "—"}</div>
+                                <div><b>Time:</b> {b.scheduleTime ? b.scheduleTime : "—"}</div>
+                                <div><b>Status:</b> Pending ⏳</div>
+                              </div>
+
+                              <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+                                <button
+                                  style={styles.btnDanger}
+                                  disabled={cancelLoadingId === b._id}
+                                  onClick={() => {
+                                    setCancelBookingId(b._id);
+                                    setCancelReason("");
+                                    setCancelOpen(true);
+                                  }}
+                                >
+                                  {cancelLoadingId === b._id ? "Cancelling..." : "Cancel Booking ❌"}
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* ACCEPTED */}
                   {bookingsHome === "accepted" && (
                     <div style={{ marginTop: 14 }}>
                       <button style={styles.btnLight} type="button" onClick={() => setBookingsHome(true)}>
@@ -872,15 +878,9 @@ export default function UserDashboard() {
                                 {b.category} • {b.distanceKm ?? "-"} km • {b.etaHours ?? "-"} hrs
                               </div>
 
-                              {/* ✅ show date/time */}
                               <div style={{ marginTop: 10, fontWeight: 800, color: "#e5e7eb" }}>
-                                <div>
-                                  <b>Date:</b>{" "}
-                                  {b.scheduleDate ? String(b.scheduleDate).slice(0, 10) : "—"}
-                                </div>
-                                <div>
-                                  <b>Time:</b> {b.scheduleTime ? b.scheduleTime : "—"}
-                                </div>
+                                <div><b>Date:</b> {b.scheduleDate ? String(b.scheduleDate).slice(0, 10) : "—"}</div>
+                                <div><b>Time:</b> {b.scheduleTime ? b.scheduleTime : "—"}</div>
                               </div>
 
                               <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -888,11 +888,14 @@ export default function UserDashboard() {
                                   Work Completed ✅
                                 </button>
 
-                                {/* ✅ NEW: Cancel Booking */}
                                 <button
                                   style={styles.btnDanger}
                                   disabled={cancelLoadingId === b._id}
-                                  onClick={() => cancelBooking(b._id)}
+                                  onClick={() => {
+                                    setCancelBookingId(b._id);
+                                    setCancelReason("");
+                                    setCancelOpen(true);
+                                  }}
                                 >
                                   {cancelLoadingId === b._id ? "Cancelling..." : "Cancel Booking ❌"}
                                 </button>
@@ -904,7 +907,7 @@ export default function UserDashboard() {
                     </div>
                   )}
 
-                  {/* REJECTED LIST */}
+                  {/* REJECTED */}
                   {bookingsHome === "rejected" && (
                     <div style={{ marginTop: 14 }}>
                       <button style={styles.btnLight} type="button" onClick={() => setBookingsHome(true)}>
@@ -946,7 +949,7 @@ export default function UserDashboard() {
                 </>
               )}
 
-              {/* MODAL (Complete + rating) */}
+              {/* COMPLETE MODAL */}
               {completeOpen && (
                 <div style={styles.modalOverlay}>
                   <div style={styles.modalCard}>
@@ -985,6 +988,56 @@ export default function UserDashboard() {
 
                       <button style={styles.btnPrimary} disabled={completeLoading} onClick={submitComplete}>
                         {completeLoading ? "Submitting..." : "Submit ✅"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ✅ CANCEL REASON MODAL */}
+              {cancelOpen && (
+                <div style={styles.modalOverlay}>
+                  <div style={styles.modalCard}>
+                    <div style={{ fontWeight: 900, fontSize: 16 }}>Cancel Reason ✍️</div>
+
+                    <div style={{ marginTop: 12 }}>
+                      <label style={styles.label}>Reason</label>
+                      <textarea
+                        value={cancelReason}
+                        onChange={(e) => setCancelReason(e.target.value)}
+                        placeholder="Eg: Plan changed, not needed..."
+                        style={styles.textarea}
+                      />
+                    </div>
+
+                    <div style={{ display: "flex", gap: 10, marginTop: 14, justifyContent: "flex-end" }}>
+                      <button
+                        style={styles.btnLight}
+                        type="button"
+                        onClick={() => {
+                          setCancelOpen(false);
+                          setCancelBookingId("");
+                          setCancelReason("");
+                        }}
+                      >
+                        Close
+                      </button>
+
+                      <button
+                        style={styles.btnDanger}
+                        disabled={cancelLoadingId === cancelBookingId}
+                        onClick={() => {
+                          const r = String(cancelReason || "").trim();
+                          if (!r) return alert("Cancel reason required ❗");
+
+                          setCancelOpen(false);
+                          cancelBooking(cancelBookingId, r);
+
+                          setCancelBookingId("");
+                          setCancelReason("");
+                        }}
+                      >
+                        {cancelLoadingId === cancelBookingId ? "Cancelling..." : "Confirm Cancel ❌"}
                       </button>
                     </div>
                   </div>

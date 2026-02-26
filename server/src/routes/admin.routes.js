@@ -5,9 +5,6 @@ import Feedback from "../models/Feedback.js";
 const router = Router();
 
 
-// ===============================
-// ✅ ADMIN AUTH MIDDLEWARE
-// ===============================
 function requireAdmin(req, res, next) {
   try {
     const auth = req.headers.authorization || "";
@@ -30,12 +27,6 @@ function requireAdmin(req, res, next) {
 }
 
 
-// ===============================
-// ✅ HELPER — SHORT LOCATION FORMAT
-// Example:
-// "Tharamani, Chennai, Tamil Nadu"
-// -> "Chennai (Tharamani)"
-// ===============================
 function shortLocation(label = "") {
 
   const parts = String(label || "")
@@ -45,7 +36,7 @@ function shortLocation(label = "") {
 
   if (!parts.length) return "—";
 
-  const area = parts[0]; // Tharamani
+  const area = parts[0]; 
   const city =
     parts.find((p) => /chennai/i.test(p)) ||
     parts[1] ||
@@ -58,9 +49,6 @@ function shortLocation(label = "") {
 
 
 
-// ===============================
-// ✅ TODAY REPORT
-// ===============================
 router.get("/today-report", requireAdmin, async (req, res) => {
   try {
 
@@ -94,9 +82,6 @@ router.get("/today-report", requireAdmin, async (req, res) => {
 
 
 
-// ===============================
-// ✅ ALL USERS LIST
-// ===============================
 router.get("/users", requireAdmin, async (req, res) => {
   try {
 
@@ -117,9 +102,6 @@ router.get("/users", requireAdmin, async (req, res) => {
 
 
 
-// ===============================
-// ✅ SERVICE CATEGORIES
-// ===============================
 router.get("/categories", requireAdmin, (req, res) => {
 
   const categories = [
@@ -136,9 +118,6 @@ router.get("/categories", requireAdmin, (req, res) => {
 
 
 
-// ===============================
-// ✅ PROVIDERS BY CATEGORY
-// ===============================
 router.get("/providers", requireAdmin, async (req, res) => {
   try {
 
@@ -156,7 +135,6 @@ router.get("/providers", requireAdmin, async (req, res) => {
       "name mobile email provider.category provider.availability provider.serviceAreas provider.businessLocation"
     );
 
-    // 🔥 Format response (short location add pannom)
     const formatted = providers.map((p) => {
 
       const label = p?.provider?.businessLocation?.label || "";
@@ -181,7 +159,6 @@ router.get("/providers", requireAdmin, async (req, res) => {
   }
 });
 
-// ✅ User Feedbacks
 router.get("/feedback", requireAdmin, async (req, res) => {
   try {
     const list = await Feedback.find({})

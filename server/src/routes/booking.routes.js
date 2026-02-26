@@ -86,12 +86,16 @@ function isProviderAvailable(providerDoc, scheduleDate, scheduleTime) {
   return t >= from && t <= to;
 }
 
-// ✅ NEW: block past date/time
+// ✅ block past date/time
 function isPastSchedule(dateStr, timeStr) {
-  // using local time
   const now = new Date();
   const chosen = new Date(`${dateStr}T${timeStr}:00`);
   return chosen.getTime() < now.getTime();
+}
+
+// ✅ common status helpers
+function toStatus(s) {
+  return String(s || "").trim().toLowerCase();
 }
 
 // ✅ User creates booking (scheduleDate + scheduleTime + availability check)
@@ -118,7 +122,6 @@ router.post("/", requireAuth, async (req, res) => {
     if (!user) return res.status(404).json({ message: "User not found" });
     if (user.role !== "user") return res.status(403).json({ message: "Only users can book" });
 
-    // ✅ IMPORTANT: get provider.provider.availability properly
     const provider = await User.findOne({ _id: providerId, role: "provider" }).select(
       "name mobile role provider.businessLocation provider.availability"
     );
@@ -127,7 +130,7 @@ router.post("/", requireAuth, async (req, res) => {
       return res.status(404).json({ message: "Provider not found" });
     }
 
-    // ✅ availability check (ONLY day/time)
+    // ✅ availability check
     const okAvail = isProviderAvailable(provider, scheduleDate, scheduleTime);
     if (!okAvail) {
       return res.status(400).json({ message: "Provider not available on that day/time ❌" });
@@ -185,13 +188,17 @@ router.post("/", requireAuth, async (req, res) => {
   }
 });
 
-// ✅ User: get my bookings
+// ✅ User: get my bookings (supports optional ?status=pending)
 router.get("/user", requireAuth, async (req, res) => {
   try {
     const me = await User.findById(req.userId).select("role");
     if (!me || me.role !== "user") return res.status(403).json({ message: "Only users" });
 
-    const list = await Booking.find({ userId: req.userId }).sort({ createdAt: -1 });
+    const status = req.query.status ? toStatus(req.query.status) : "";
+    const filter = { userId: req.userId };
+    if (status) filter.status = status;
+
+    const list = await Booking.find(filter).sort({ createdAt: -1 });
     return res.json({ ok: true, bookings: list });
   } catch (e) {
     console.error(e);
@@ -199,7 +206,7 @@ router.get("/user", requireAuth, async (req, res) => {
   }
 });
 
-// ✅ NEW: User cancels accepted booking (ONLY accepted; not completed/rejected/cancelled)
+// ✅ User cancels booking (ALLOW pending + accepted)
 router.put("/:id/cancel", requireAuth, async (req, res) => {
   try {
     const { reason } = req.body;
@@ -214,8 +221,13 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    if (booking.status !== "accepted") {
-      return res.status(400).json({ message: "Only accepted bookings can be cancelled" });
+    const st = toStatus(booking.status);
+
+    // ✅ can cancel only pending or accepted
+    if (!["pending", "accepted"].includes(st)) {
+      return res.status(400).json({
+        message: `Only pending/accepted bookings can be cancelled (current: ${booking.status})`,
+      });
     }
 
     booking.status = "cancelled";
@@ -225,10 +237,7 @@ router.put("/:id/cancel", requireAuth, async (req, res) => {
 
     await booking.save();
 
-    // ✅ Provider alert MVP (later you can do socket/push)
-    console.log(
-      `🔴 ALERT to Provider(${booking.providerId}): Booking ${booking._id} cancelled by user`
-    );
+    console.log(`🔴 ALERT to Provider(${booking.providerId}): Booking ${booking._id} cancelled by user`);
 
     return res.json({ ok: true, booking, message: "Booking cancelled ✅" });
   } catch (e) {
@@ -247,7 +256,7 @@ router.delete("/:id", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    if (booking.status !== "rejected") {
+    if (toStatus(booking.status) !== "rejected") {
       return res.status(400).json({ message: "Only rejected bookings can be deleted" });
     }
 
@@ -271,7 +280,7 @@ router.put("/:id/complete", requireAuth, async (req, res) => {
       return res.status(403).json({ message: "Not allowed" });
     }
 
-    if (booking.status !== "accepted") {
+    if (toStatus(booking.status) !== "accepted") {
       return res.status(400).json({ message: "Only accepted bookings can be completed" });
     }
 
@@ -327,12 +336,31 @@ router.get("/provider/pending", requireAuth, async (req, res) => {
   }
 });
 
+// ✅ NEW: Provider "Pending Works" (accepted only)
+router.get("/provider/accepted", requireAuth, async (req, res) => {
+  try {
+    const me = await User.findById(req.userId).select("role");
+    if (!me || me.role !== "provider") {
+      return res.status(403).json({ message: "Only providers can view this" });
+    }
+
+    const list = await Booking.find({ providerId: req.userId, status: "accepted" }).sort({
+      createdAt: -1,
+    });
+
+    return res.json({ ok: true, bookings: list });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
 // ✅ Provider accept/reject
 router.put("/:id/status", requireAuth, async (req, res) => {
   try {
     const { status, reason } = req.body;
 
-    if (!["accepted", "rejected"].includes(status)) {
+    if (!["accepted", "rejected"].includes(toStatus(status))) {
       return res.status(400).json({ message: "Invalid status" });
     }
 
@@ -344,11 +372,13 @@ router.put("/:id/status", requireAuth, async (req, res) => {
     }
 
     // prevent changes after cancelled/completed
-    if (["cancelled", "completed"].includes(String(booking.status))) {
+    if (["cancelled", "completed"].includes(toStatus(booking.status))) {
       return res.status(400).json({ message: `Cannot update a ${booking.status} booking` });
     }
 
-    if (status === "rejected") {
+    const st = toStatus(status);
+
+    if (st === "rejected") {
       const r = String(reason || "").trim();
       if (!r) return res.status(400).json({ message: "Reject reason required" });
       booking.rejectReason = r;
@@ -356,7 +386,7 @@ router.put("/:id/status", requireAuth, async (req, res) => {
       booking.rejectReason = "";
     }
 
-    booking.status = status;
+    booking.status = st;
     await booking.save();
 
     return res.json({ ok: true, booking });
@@ -366,7 +396,7 @@ router.put("/:id/status", requireAuth, async (req, res) => {
   }
 });
 
-// ✅ Provider: work history (accepted + completed + cancelled)
+// ✅ Provider: work history (COMPLETED only)  <-- as per your requirement
 router.get("/provider/history", requireAuth, async (req, res) => {
   try {
     const me = await User.findById(req.userId).select("role");
@@ -376,12 +406,64 @@ router.get("/provider/history", requireAuth, async (req, res) => {
 
     const list = await Booking.find({
       providerId: req.userId,
-      status: { $in: ["accepted", "completed", "cancelled"] },
+      status: "completed",
     }).sort({ createdAt: -1 });
 
     return res.json({ ok: true, bookings: list });
   } catch (e) {
     console.error(e);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ Provider: pending works (accepted + cancelledBy user)
+router.get("/provider/pending-works", requireAuth, async (req, res) => {
+  try {
+    const me = await User.findById(req.userId).select("role");
+    if (!me || me.role !== "provider") {
+      return res.status(403).json({ message: "Only providers can view this" });
+    }
+
+    const list = await Booking.find({
+      providerId: req.userId,
+      $or: [
+        { status: "accepted" },
+        { status: "cancelled", cancelledBy: "user" },
+      ],
+    }).sort({ updatedAt: -1, createdAt: -1 });
+
+    return res.json({ ok: true, bookings: list });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ✅ Provider: delete only cancelled bookings (cleanup in Pending Works)
+router.delete("/provider/:id", requireAuth, async (req, res) => {
+  try {
+    const me = await User.findById(req.userId).select("role");
+    if (!me || me.role !== "provider") {
+      return res.status(403).json({ message: "Only providers" });
+    }
+
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ message: "Booking not found" });
+
+    // must belong to this provider
+    if (String(booking.providerId) !== String(req.userId)) {
+      return res.status(403).json({ message: "Not allowed" });
+    }
+
+    // only cancelled allowed
+    if (String(booking.status) !== "cancelled") {
+      return res.status(400).json({ message: "Only cancelled bookings can be deleted" });
+    }
+
+    await booking.deleteOne();
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("PROVIDER CANCEL DELETE ERROR:", e);
     return res.status(500).json({ message: "Server error" });
   }
 });
