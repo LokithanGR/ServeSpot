@@ -14,7 +14,7 @@ export default function AdminDashboard() {
 
   const token = localStorage.getItem("servespot_admin_token");
 
-  const [view, setView] = useState("home"); // home | today | users | categories | feedback
+  const [view, setView] = useState("home"); // home | today | users | categories | feedback | reports
 
   // today report
   const [todayLoading, setTodayLoading] = useState(false);
@@ -36,10 +36,13 @@ export default function AdminDashboard() {
   const [providersErr, setProvidersErr] = useState("");
   const [providers, setProviders] = useState([]);
 
-  // ✅ NEW: feedback
+  // feedback
   const [fbLoading, setFbLoading] = useState(false);
   const [fbErr, setFbErr] = useState("");
   const [feedbacks, setFeedbacks] = useState([]);
+
+  // ✅ NEW: report download loading
+  const [reportLoading, setReportLoading] = useState("");
 
   useEffect(() => {
     if (!admin || !token) nav("/admin/login");
@@ -51,6 +54,7 @@ export default function AdminDashboard() {
     nav("/admin/login");
   };
 
+  // ---------------- API calls ----------------
   const fetchToday = async () => {
     try {
       setTodayLoading(true);
@@ -123,16 +127,13 @@ export default function AdminDashboard() {
       setProviders([]);
 
       const res = await fetch(
-        `http://localhost:5000/api/admin/providers?category=${encodeURIComponent(
-          category
-        )}`,
+        `http://localhost:5000/api/admin/providers?category=${encodeURIComponent(category)}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.message || "Failed");
 
-      // ✅ expecting formatted providers: { id, name, mobile, email, locationShort, category }
       setProviders(data.providers || []);
     } catch (e) {
       setProvidersErr(e.message || "Failed");
@@ -142,7 +143,6 @@ export default function AdminDashboard() {
     }
   };
 
-  // ✅ NEW: fetch feedbacks
   const fetchFeedbacks = async () => {
     try {
       setFbLoading(true);
@@ -164,6 +164,7 @@ export default function AdminDashboard() {
     }
   };
 
+  // ---------------- Navigation helpers ----------------
   const openToday = () => {
     setView("today");
     fetchToday();
@@ -181,10 +182,49 @@ export default function AdminDashboard() {
     fetchCategories();
   };
 
-  // ✅ NEW: open feedback
   const openFeedback = () => {
     setView("feedback");
     fetchFeedbacks();
+  };
+
+  // ✅ NEW: open reports
+  const openReports = () => {
+    setView("reports");
+  };
+
+  // ✅ NEW: download report pdf
+  const downloadReport = async (type) => {
+    try {
+      setReportLoading(type);
+
+      // IMPORTANT:
+      // Backend route should accept admin token:
+      // GET /api/reports/:type/pdf  (admin only)
+      const res = await fetch(`http://localhost:5000/api/reports/${type}/pdf`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.message || "Failed to download report");
+      }
+
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `servespot-${type}-report.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+
+      window.URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(e.message || "Download failed");
+    } finally {
+      setReportLoading("");
+    }
   };
 
   const RoleBadge = ({ role }) => {
@@ -215,9 +255,7 @@ export default function AdminDashboard() {
       <header style={styles.navbar}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={styles.brand}>ServeSpot</div>
-          <div style={styles.welcome}>
-            Welcome {admin?.name || "Loki"} !!! 😄
-          </div>
+          <div style={styles.welcome}>Welcome {admin?.name || "Loki"} !!! 😄</div>
         </div>
 
         <button style={styles.logout} onClick={logout}>
@@ -231,7 +269,7 @@ export default function AdminDashboard() {
           <div style={styles.center}>
             <div style={styles.grid}>
               <button style={styles.bigCard} onClick={openToday}>
-                Today's Login Report 📊
+                Today&apos;s Login Report 📊
               </button>
               <button style={styles.bigCard} onClick={openUsers}>
                 All Users 👥
@@ -239,10 +277,63 @@ export default function AdminDashboard() {
               <button style={styles.bigCard} onClick={openCategories}>
                 Service Categories 🧰
               </button>
-
-              {/* ✅ NEW */}
               <button style={styles.bigCard} onClick={openFeedback}>
                 User&apos;s Feedback 💬
+              </button>
+
+              {/* ✅ NEW */}
+
+            </div>
+                <div style={styles.generateWrap}>
+        <button style={styles.generateBtn} onClick={openReports}>
+          Generate Full System Report (PDF) 📄
+        </button>
+      </div>
+          </div>
+      
+        )}
+
+        {/* REPORTS VIEW */}
+        {view === "reports" && (
+          <div style={styles.card}>
+            <div style={styles.headRow}>
+              <div style={styles.h2}>Generate Reports (PDF) 📄</div>
+              <button style={styles.btnLight} onClick={() => setView("home")}>
+                ⬅ Back
+              </button>
+            </div>
+
+            <div style={{ marginTop: 12, display: "grid", gap: 12 }}>
+              <button
+                style={styles.bigBtn}
+                disabled={reportLoading === "users"}
+                onClick={() => downloadReport("users")}
+              >
+                {reportLoading === "users" ? "Generating..." : "Users Report (PDF) 👥"}
+              </button>
+
+              <button
+                style={styles.bigBtn}
+                disabled={reportLoading === "providers"}
+                onClick={() => downloadReport("providers")}
+              >
+                {reportLoading === "providers" ? "Generating..." : "Providers Report (PDF) 🧰"}
+              </button>
+
+              <button
+                style={styles.bigBtn}
+                disabled={reportLoading === "bookings"}
+                onClick={() => downloadReport("bookings")}
+              >
+                {reportLoading === "bookings" ? "Generating..." : "Bookings Report (PDF) 📌"}
+              </button>
+
+              <button
+                style={styles.bigBtn}
+                disabled={reportLoading === "feedback"}
+                onClick={() => downloadReport("feedback")}
+              >
+                {reportLoading === "feedback" ? "Generating..." : "Feedback Report (PDF) 💬"}
               </button>
             </div>
           </div>
@@ -252,7 +343,7 @@ export default function AdminDashboard() {
         {view === "today" && (
           <div style={styles.card}>
             <div style={styles.headRow}>
-              <div style={styles.h2}>Today's Login Report 📊</div>
+              <div style={styles.h2}>Today&apos;s Login Report 📊</div>
               <button style={styles.btnLight} onClick={() => setView("home")}>
                 ⬅ Back
               </button>
@@ -406,7 +497,7 @@ export default function AdminDashboard() {
           </div>
         )}
 
-        {/* ✅ NEW: FEEDBACK VIEW */}
+        {/* FEEDBACK VIEW */}
         {view === "feedback" && (
           <div style={styles.card}>
             <div style={styles.headRow}>
@@ -571,4 +662,35 @@ const styles = {
     fontWeight: 900,
   },
   catBtnActive: { background: "#eef2ff", borderColor: "#c7d2fe" },
+
+  // ✅ NEW style
+  bigBtn: {
+    padding: "14px 14px",
+    borderRadius: 14,
+    border: "1px solid #e5e7eb",
+    background: "#ffffff",
+    cursor: "pointer",
+    fontWeight: 900,
+    fontSize: 15,
+    textAlign: "left",
+  },
+  generateWrap: {
+  marginTop: 30,
+  width: "100%",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+},
+
+generateBtn: {
+  padding: "12px 26px",
+  borderRadius: 14,
+  border: "1px solid #111827",
+  background: "#111827",
+  color: "#fff",
+  fontWeight: 900,
+  fontSize: 15,
+  cursor: "pointer",
+  minWidth: 420, // optional - looks clean
+},
 };

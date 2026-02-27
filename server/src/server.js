@@ -9,6 +9,7 @@ import providerRoutes from "./routes/provider.routes.js";
 import bookingRoutes from "./routes/booking.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import feedbackRoutes from "./routes/feedback.routes.js";
+import reportRoutes from "./routes/report.routes.js";
 dotenv.config();
 
 const app = express();
@@ -32,7 +33,7 @@ app.get("/", (req, res) => {
 app.use("/api", healthRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/admin", adminRoutes);
-
+app.use("/api/reports", reportRoutes);
 
 // Basic error handler
 app.use((err, req, res, next) => {
